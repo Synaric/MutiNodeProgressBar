@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context="com.synaric.mutinodeprogressbar.MainActivity">
+
+    <com.synaric.mutinodeprogressbar.MutiNodeProgressBar
+        android:id="@+id/pb_muti"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:background="@android:color/white"
+        app:nodeSize="25dp"
+        app:nodeSrc="@drawable/bg_node"
+        app:lineHeight="4dp"
+        app:lineForeColor="@android:color/holo_blue_light"
+        app:lineBackColor="@color/c_ccc"
+        app:progress="1"/>
+</RelativeLayout>

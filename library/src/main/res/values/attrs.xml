@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="MutiNodeProgressBar">
+        <attr name="nodeSize" format="dimension"/>
+        <attr name="nodeSrc" format="reference"/>
+        <attr name="lineHeight" format="dimension"/>
+        <attr name="lineForeColor" format="color"/>
+        <attr name="lineBackColor" format="color"/>
+        <attr name="progress" format="float"/>
+    </declare-styleable>
+</resources>
