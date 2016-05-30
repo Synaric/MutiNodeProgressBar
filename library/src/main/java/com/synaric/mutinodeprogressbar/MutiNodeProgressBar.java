@@ -11,13 +11,20 @@ import android.widget.RelativeLayout;
 
 import com.synaric.libmutinode.R;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 多节点进度条。
  * Created by Synaric on 2016/5/20 0020.
  */
 public class MutiNodeProgressBar extends RelativeLayout {
 
-    public static final int MIN_NODE_INTERVAL = 50;
+    public static final int MIN_NODE_INTERVAL = 35;
+
+    public static final int DEFAULT_NODE_SIZE = 10;
+
+    public static final float DEFAULT_PROGRESS = 0;
 
     private Context context;
 
@@ -81,6 +88,21 @@ public class MutiNodeProgressBar extends RelativeLayout {
      */
     private int endHalfWidth;
 
+    /**
+     * 背景的线。
+     */
+    private SimpleProgressBar lineView;
+
+    /**
+     * 节点。
+     */
+    private List<View> nodeViews;
+
+    /**
+     * 描述。
+     */
+    private List<View> descriptionViews;
+
     public MutiNodeProgressBar(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -91,26 +113,26 @@ public class MutiNodeProgressBar extends RelativeLayout {
         this.context = getContext();
 
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.MutiNodeProgressBar);
-        nodeSize = typedArray.getDimensionPixelSize(R.styleable.MutiNodeProgressBar_nodeSize, 50);
+        nodeSize = typedArray.getDimensionPixelSize(R.styleable.MutiNodeProgressBar_nodeSize, MIN_NODE_INTERVAL);
         nodeSrc = typedArray.getResourceId(R.styleable.MutiNodeProgressBar_nodeSrc, R.drawable.bg_node);
-        lineHeight = typedArray.getDimensionPixelSize(R.styleable.MutiNodeProgressBar_lineHeight, 10);
+        lineHeight = typedArray.getDimensionPixelSize(R.styleable.MutiNodeProgressBar_lineHeight, DEFAULT_NODE_SIZE);
         lineForeColor = typedArray.getColor(R.styleable.MutiNodeProgressBar_lineForeColor,
                 getResources().getColor(android.R.color.holo_blue_light));
         lineBackColor = typedArray.getColor(R.styleable.MutiNodeProgressBar_lineBackColor,
                 getResources().getColor(R.color.c_ccc));
-        progress = typedArray.getFloat(R.styleable.MutiNodeProgressBar_progress, 0);
+        progress = typedArray.getFloat(R.styleable.MutiNodeProgressBar_progress, DEFAULT_PROGRESS);
 
         typedArray.recycle();
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int height = nodeSize + getPaddingTop() + getPaddingBottom();
+        int height = 0;
         int maxChildHeight = 0;
         int firstNodeWidth = 0, lastNodeWidth = 0;
         if(null != adapter){
             for(int i = 0; i < nodeCount; ++i){
-                View descView = adapter.getDescView(i);
+                View descView = descriptionViews.get(i);
                 descView.measure(0, 0);
                 int measuredChildWidth = descView.getMeasuredWidth();
                 int measuredChildHeight = descView.getMeasuredHeight();
@@ -123,6 +145,13 @@ public class MutiNodeProgressBar extends RelativeLayout {
                     lastNodeWidth = measuredChildWidth;
                 }
             }
+
+            View sample = nodeViews.get(0);
+            if(null != sample){
+                sample.measure(0, 0);
+                nodeSize = sample.getMeasuredWidth();
+            }
+            height = nodeSize + getPaddingTop() + getPaddingBottom();
         }
         height += maxChildHeight;
 
@@ -135,9 +164,9 @@ public class MutiNodeProgressBar extends RelativeLayout {
             int width = 0;
             width += (
                     startHalfWidth +
-                            endHalfWidth +
+                    endHalfWidth +
                     (lineWidth = MIN_NODE_INTERVAL * Math.max(nodeCount, 0))
-                    );
+            );
             nodeInterval = MIN_NODE_INTERVAL;
             widthMeasureSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY);
         }else{
@@ -147,53 +176,67 @@ public class MutiNodeProgressBar extends RelativeLayout {
                     endHalfWidth +
                     getPaddingLeft() +
                     getPaddingRight()
-                    );
+            );
             nodeInterval = lineWidth / (nodeCount - 1);
         }
-
-        addViews();
 
         heightMeasureSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY);
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     private void addViews() {
+        nodeViews = new ArrayList<>();
+        descriptionViews = new ArrayList<>();
+
         //初始化线条
         addLine(lineWidth, lineHeight);
 
         //初始化节点和描述
         for(int i = 0; i < nodeCount; ++i){
-            ImageView ivNode = new ImageView(context);
-            ivNode.setImageResource(nodeSrc);
-            ivNode.setTag(adapter.getDescView(i));
-            ivNode.setEnabled(i <= progress);
-            addView(ivNode);
-            addView(adapter.getDescView(i));
+            View node = adapter.getNodeView(i);
+            if(node == null){
+                node = createDefaultNodeView();
+            }
+            node.setTag(adapter.getDescView(i));
+            Utils.setChildEnabled(node, i <= progress);
+            addView(node);
+            final View desc = adapter.getDescView(i);
+            addView(desc);
+
+            nodeViews.add(node);
+            descriptionViews.add(desc);
         }
     }
 
+    private View createDefaultNodeView(){
+        ImageView iv = new ImageView(context);
+        iv.setImageResource(nodeSrc);
+        ViewGroup.LayoutParams lp = new ViewGroup.LayoutParams(nodeSize, nodeSize);
+        iv.setLayoutParams(lp);
+        return iv;
+    }
+
     private void addLine(int width, int height){
-        SimpleProgressBar line = new SimpleProgressBar(context);
+        lineView = new SimpleProgressBar(context);
         LayoutParams lineParams = new LayoutParams(width, height);
-        line.setForeColor(lineForeColor);
-        line.setBackColor(lineBackColor);
-        line.setStroke(lineHeight);
-        line.setProgress(progress / (nodeCount - 1));
-        line.setLayoutParams(lineParams);
-        addView(line);
+        lineView.setForeColor(lineForeColor);
+        lineView.setBackColor(lineBackColor);
+        lineView.setStroke(lineHeight);
+        lineView.setProgress(progress / (nodeCount - 1));
+        lineView.setLayoutParams(lineParams);
+        addView(lineView);
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        int realLeft = left + getPaddingLeft();
-        int realRight = right - getPaddingRight();
-        int realTop = top + getPaddingTop();
-        int realBottom = bottom - getPaddingBottom();
+        int realLeft = getPaddingLeft();
+        int realRight = right - left - getPaddingRight();
+        int realTop = getPaddingTop();
+        int realBottom = bottom - top - getPaddingBottom();
 
         final float dHalf = (nodeSize - lineHeight) / 2;
-        View line = getChildAt(0);
-        //布局线
-        line.layout(
+        lineView = (SimpleProgressBar) getChildAt(0);
+        lineView.layout(
                 realLeft + startHalfWidth,
                 (int) (realTop + dHalf + 0.5f),
                 realRight - endHalfWidth,
@@ -201,7 +244,7 @@ public class MutiNodeProgressBar extends RelativeLayout {
 
         //布局节点和节点描述
         for(int i = 0;i < nodeCount; ++i){
-            View desc = getChildAt(2 * (i+1));
+            View desc = getChildAt(2 * (i + 1));
             desc.layout(
                     (int)(realLeft + startHalfWidth - desc.getMeasuredWidth() / 2 + nodeInterval * i + 0.5f),
                     realTop + nodeSize,
@@ -226,11 +269,31 @@ public class MutiNodeProgressBar extends RelativeLayout {
         this.adapter = new AdapterWrapper<>(adapter);
         nodeCount = adapter.getCount();
         if(nodeCount <= 0){
-            throw new IllegalArgumentException("node count must > 0.");
+            throw new IllegalArgumentException("Node count must > 0.");
         }
 
         removeAllViews();
-        requestLayout();
+        addViews();
+    }
+
+    public float getProgress() {
+        return progress;
+    }
+
+    public void setProgress(float progress) {
+        this.progress = progress;
+        if(null == adapter){
+            throw  new IllegalArgumentException("You must call setAdapter() before setProgress().");
+        }
+        updateProgress(progress);
+    }
+
+    private void updateProgress(float progress) {
+        for(int i = 0; i < nodeViews.size(); ++i){
+            View node = nodeViews.get(i);
+            Utils.setChildEnabled(node, i <= progress);
+        }
+        invalidate();
     }
 
     private class AdapterWrapper<T> implements MutiNodeAdapter<T>{
@@ -246,6 +309,11 @@ public class MutiNodeProgressBar extends RelativeLayout {
             View descView = adapter.getDescView(position);
             descView.setTag(position);
             return descView;
+        }
+
+        @Override
+        public View getNodeView(int position) {
+            return adapter.getNodeView(position);
         }
 
         public MutiNodeAdapter<T> getAdapter() {

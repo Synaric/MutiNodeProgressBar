@@ -27,5 +27,12 @@ public abstract class SimpleMutiNodeAdapter<T> implements MutiNodeAdapter<T>{
     /**
      * 生成节点下方的描述视图。
      */
+    @Override
     public abstract View getDescView(int position);
+
+    /**
+     * 生成节点视图。
+     */
+    @Override
+    public View getNodeView(int position){return null;}
 }
